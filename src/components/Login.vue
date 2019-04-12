@@ -9,8 +9,8 @@
         <el-tab-pane label="用户登录">
           <div class="loginBox">
             <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm">
-              <el-form-item label="用户名：" prop="ID">
-                <el-input v-model="ruleForm.ID"></el-input>
+              <el-form-item label="用户名：" prop="account">
+                <el-input v-model="ruleForm.account"></el-input>
               </el-form-item>
               <el-form-item label="密码：" prop="password">
                 <el-input v-model="ruleForm.password" type="password"></el-input>
@@ -38,8 +38,8 @@
         <el-tab-pane label="管理员登录" class="tab_pane">
           <div class="loginBox">
             <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm">
-              <el-form-item label="用户名：" prop="ID">
-                <el-input v-model="ruleForm.ID"></el-input>
+              <el-form-item label="用户名：" prop="account">
+                <el-input v-model="ruleForm.account"></el-input>
               </el-form-item>
               <el-form-item label="密码：" prop="password">
                 <el-input v-model="ruleForm.password" type="password"></el-input>
@@ -76,16 +76,17 @@
 
 <script>
   import register from "./register";
+  import AjaxHelper from "../../static/js/AjaxHelper"
   export default {
     name: "login",
     data() {
       return {
         ruleForm: {
-          ID: '',
+          account: '',
           password: '',
         },
         rules: {
-          ID: [
+          account: [
             { required: true, message: '请输入用户名', trigger: 'blur' },
             { min: 6, max: 12, message: '长度为 6～12 个字符', trigger: 'blur' }
           ],
@@ -99,10 +100,10 @@
     methods: {
       //查找用户名是否存在，并且密码一致
       check(num) {
-        let ID = this.ruleForm.ID;
-        console.log(ID);
+        let account = this.ruleForm.account;
+        console.log(account);
         //调用数据库findOne接口查找用户信息
-        this.$ajax.get('http://localhost:8080/user/findOne/' + ID,).then(response=> {
+        this.$ajax.get('http://localhost:8080/user/findOne/' + account,).then(response=> {
           console.log(response.data);
           //未找到用户
           if(response.data === '' || response.data === null) {
@@ -124,6 +125,10 @@
         }).catch(function (error){
           console.log("登录失败")
         });
+
+        AjaxHelper.get("localhost:8080/user/login",{account:this.ruleForm.account,password:this.ruleForm.password},(data)=>{
+          console.log(data);
+        })
       },
       //提交用户表单
       submitForm1(formName) {
