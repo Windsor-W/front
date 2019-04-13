@@ -18,7 +18,7 @@ var AjaxHelper ={
   },
 
   get:function(url, data, callback) {
-    var data = data!=null?JSON.stringify(data):'';
+    // var data = data!=null?JSON.stringify(data):'';
     this.ajaxJSON(url, 'GET',data, callback,true,'application/json')
   },
   put:function(url, data, callback) {
@@ -35,4 +35,4 @@ var AjaxHelper ={
   }
 }
 
-modules.exports=  AjaxHelper
+export {AjaxHelper}

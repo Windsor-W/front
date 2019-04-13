@@ -76,7 +76,7 @@
 
 <script>
   import register from "./register";
-  import AjaxHelper from "../../static/js/AjaxHelper"
+  import {AjaxHelper} from "../../static/js/AjaxHelper"
   export default {
     name: "login",
     data() {
@@ -88,7 +88,7 @@
         rules: {
           account: [
             { required: true, message: '请输入用户名', trigger: 'blur' },
-            { min: 6, max: 12, message: '长度为 6～12 个字符', trigger: 'blur' }
+            { min: 6, max: 20, message: '长度为 6～20 个字符', trigger: 'blur' }
           ],
           password: [
             { required: true, message: '请输入密码', trigger: 'change' },
@@ -103,31 +103,37 @@
         let account = this.ruleForm.account;
         console.log(account);
         //调用数据库findOne接口查找用户信息
-        this.$ajax.get('http://localhost:8080/user/findOne/' + account,).then(response=> {
-          console.log(response.data);
-          //未找到用户
-          if(response.data === '' || response.data === null) {
-            this.$message.error("用户不存在");
-          }
-          //找到用户，比对密码
-          else if(response.data.passwd === this.ruleForm.password) {
+        // this.$ajax.get('http://localhost:8080/user/findOne/' + account,).then(response=> {
+        //   console.log(response.data);
+        //   //未找到用户
+        //   if(response.data === '' || response.data === null) {
+        //     this.$message.error("用户不存在");
+        //   }
+        //   //找到用户，比对密码
+        //   else if(response.data.passwd === this.ruleForm.password) {
+        //     this.$message({
+        //       message: '登录成功',
+        //       type: 'success'
+        //     });
+        //     //跳转
+        //     if (num === 2) {this.$router.push('warehouse');}
+        //     else {this.$router.push('User');}
+        //   }//密码错误
+        //   else {
+        //     this.$message.error("密码错误");
+        //   }
+        // }).catch(function (error){
+        //   console.log("登录失败")
+        // });
+        AjaxHelper.post("http://localhost:8081/user/login",{account:this.ruleForm.account,password:this.ruleForm.password},(data)=>{
+          if(data.status==1){
             this.$message({
               message: '登录成功',
               type: 'success'
-            });
-            //跳转
-            if (num === 2) {this.$router.push('warehouse');}
-            else {this.$router.push('User');}
-          }//密码错误
-          else {
-            this.$message.error("密码错误");
+            })
+            this.$router.push('warehouse');
+            console.log(data);
           }
-        }).catch(function (error){
-          console.log("登录失败")
-        });
-
-        AjaxHelper.get("localhost:8080/user/login",{account:this.ruleForm.account,password:this.ruleForm.password},(data)=>{
-          console.log(data);
         })
       },
       //提交用户表单

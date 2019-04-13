@@ -19,9 +19,9 @@
 
     <!-- 仓库汇总 -->
     <el-table :data="Storage" style="width: 100%">
-      <el-table-column label="仓库编号" prop="warehouseId" align="center"></el-table-column>
-      <el-table-column label="仓库名称" prop="warehouseName" align="center"></el-table-column>
-      <el-table-column prop="warehouseType" align="center">
+      <el-table-column label="仓库编号" prop="warehouseid" align="center"></el-table-column>
+      <el-table-column label="仓库名称" prop="warehousename" align="center"></el-table-column>
+      <el-table-column prop="warehousetype" align="center">
         <template slot="header" slot-scope="scope">
           仓库类型
           <el-tooltip class="item" effect="dark" content="1：服饰；2：鞋履" placement="top">
@@ -31,7 +31,7 @@
       </el-table-column>
       <el-table-column align="right">
         <template slot="header" slot-scope="scope">
-          <el-input v-model="input1" size="small" placeholder="输入仓库编号搜索" @keyup.enter.native="find"/>
+          <el-input v-model="input1" size="small" placeholder="输入仓库编号搜索" @keyup.enter.native="selectByKeyword"/>
         </template>
         <template slot-scope="scope">
           <el-button size="mini" @click="setCurrent(scope.row)">编辑</el-button>
@@ -43,23 +43,23 @@
     <!-- 新建仓库 -->
     <el-dialog title="添加新仓库" :visible.sync="dialogCreateVisible" width="400px">
       <el-form :model="create" :rules="createRules" ref="create" label-width="100px">
-        <el-form-item label="仓库编号：" prop="warehouseId" >
-          <el-input v-model="create.warehouseId" ></el-input>
+        <el-form-item label="仓库编号：" prop="warehouseid">
+          <el-input v-model="create.warehouseId"></el-input>
         </el-form-item>
-        <el-form-item label="仓库名称：" prop="warehouseName">
+        <el-form-item label="仓库名称：" prop="warehousename">
           <el-input v-model="create.warehouseName"></el-input>
         </el-form-item>
-        <el-form-item label="仓库类型：" prop="warehouseType">
-          <el-input v-model="create.warehouseType" ></el-input>
+        <el-form-item label="仓库类型：" prop="warehousetype">
+          <el-input v-model="create.warehouseType"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer" align="center">
-        <el-button type="info" @click="submitForm('create')" >确 定</el-button>
-        <el-button @click="dialogCreateVisible = false" >取 消</el-button>
+        <el-button type="info" @click="submitForm('create')">确 定</el-button>
+        <el-button @click="dialogCreateVisible = false">取 消</el-button>
       </div>
     </el-dialog>
 
-    <!-- 修改订单 -->
+    <!-- 修改仓库 -->
     <el-dialog
       title="修改仓库信息"
       :visible.sync="dialogUpdateVisible"
@@ -68,14 +68,14 @@
       width="400px"
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="100px">
-        <el-form-item label="仓库编号:" prop="warehouseId">
-          <el-input v-model="update.warehouseId" readonly="true"></el-input>
+        <el-form-item label="仓库编号:" prop="warehouseid">
+          <el-input v-model="update.warehouseid" disabled></el-input>
         </el-form-item>
-        <el-form-item label="仓库名字" prop="warehouseName">
-          <el-input v-model="update.warehouseName"></el-input>
+        <el-form-item label="仓库名字" prop="warehousename">
+          <el-input v-model="update.warehousename"></el-input>
         </el-form-item>
-        <el-form-item label="仓库类型" prop="warehouseType">
-          <el-input v-model="update.warehouseType"></el-input>
+        <el-form-item label="仓库类型" prop="warehousetype">
+          <el-input v-model="update.warehousetype"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -87,36 +87,21 @@
 </template>
 
 <script>
+  import {AjaxHelper} from "../../static/js/AjaxHelper";
+
   export default {
     name: "Warehouse",
-    inject:['reload'],
+    inject: ['reload'],
     methods: {
       //提交表单
       submitForm(formName) {
         this.$refs[formName].validate((valid) => {
           if (valid) {
-            this.check();
+            this.createStorage();
           } else {
             console.log('新建失败');
             return false;
           }
-        });
-      },
-      check() {
-        let warehouseId = this.create.warehouseId;
-        //调用数据库findOne接口查找仓库编号信息
-        this.$ajax.post('http://localhost:8080/warehouse/findOne/' + warehouseId,).then(response=> {
-          console.log(response.data);
-          //仓库不存在，新建
-          if(response.data === '' || response.data === null) {
-            this.createStorage();
-          }
-          else {
-            this.$message.error("该仓库已存在");
-            return false;
-          }
-        }).catch(function (error){
-          console.log("新建失败")
         });
       },
       submitForm2(formName) {
@@ -130,56 +115,45 @@
         });
       },
 
-      //查找数据
-      find() {
-        if(this.input1===''){
+      //通过关键字查找数据查找数据
+      selectByKeyword() {
+        if (this.input1 === '') {
           return;
         }
         console.log(this.input1);
-        this.$ajax
-        //-------------------------后台接口修改------------------------//
-          .post("http://localhost:8080/warehouse/findOne/" + this.input1)
-          .then(response => {
-            if(response.data===''){
-              this.Storage=[];
-              return;
-            }
-            this.Storage=[];
-            this.Storage.push(response.data);
-          })
-          .catch(function(error) {
-            console.log("found failed！");
-          });
+        AjaxHelper.get("http://localhost:8081/warehouse/retrieval",{keyword:this.input1},(jsonResult)=>{
+          if(jsonResult.status==1){
+            console.log(jsonResult.msg);
+            var list = jsonResult.data.list;
+            this.Storage = [];
+            list.forEach(item => {
+              this.Storage.push(item);
+            });
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
 
       // 插入数据
       createStorage() {
         let data = this.create;
         console.log(data);
-        console.log(JSON.stringify(data));
-        this.$ajax
-          .post(
-            //-------------------------后台接口修改------------------------//
-            "http://localhost:8080/warehouse/add/",
-            JSON.stringify(data),
-            {
-              headers: { "Content-Type": "application/json;charset=UTF-8" }
-            }
-          )
-          .then(response => {
-            console.log(response.data);
-            this.dialogCreateVisible = false;
-            this.open2();
-          })
-          .catch(function(error) {
-            console.log("save failed！");
-          });
+        console.log(AjaxHelper);
+        AjaxHelper.post("http://localhost:8081/warehouse/add",data,(jsonResult)=>{
+          if(jsonResult.status==1){
+            this.$message.info("新建仓库成功");
+            this.$router.go(0);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
       setCurrent(currentStorage) {
         console.log(currentStorage);
-        this.update.warehouseId = currentStorage.warehouseId;
-        this.update.warehouseName = currentStorage.warehouseName;
-        this.update.warehouseType = currentStorage.warehouseType;
+        this.update.warehouseid = currentStorage.warehouseid;
+        this.update.warehousename = currentStorage.warehousename;
+        this.update.warehousetype = currentStorage.warehousetype;
         this.update.sum_money = currentStorage.sum_money;
         this.dialogUpdateVisible = true;
         console.log(this.dialogUpdateVisible);
@@ -188,59 +162,44 @@
       //更新数据
       updateStorage() {
         let data = {
-          warehouseId: this.update.warehouseId,
-          warehouseName: this.update.warehouseName,
-          warehouseType: this.update.warehouseType
+          warehouseId: this.update.warehouseid,
+          warehouseName: this.update.warehousename,
+          warehouseType: this.update.warehousetype
         };
-        console.log(data);
-        console.log(JSON.stringify(data));
-        this.$ajax
-          .post(
-            //--------------------------后台接口修改----------------------------//
-            "http://localhost:8080/warehouse/updateOne/",
-            JSON.stringify(data),
-            {
-              headers: { "Content-Type": "application/json;charset=UTF-8" }
-            }
-          )
-          .then(response => {
-            console.log(response);
-            this.open3();
-            this.reload();
+        AjaxHelper.post("http://localhost:8081/warehouse/update", data, (jsonResult) => {
+          console.log(jsonResult);
+          if (jsonResult.status == 1) {
+            this.$message({
+              message: "成功",
+              type: "success"
+            });
             this.dialogUpdateVisible = false;
-          })
-          .catch(function(error) {
-            console.log("update failed！");
-          });
+            setTimeout(500, this.$router.go(0));
+          }
+        })
       },
 
       //删除数据
       removed(currentStorage) {
         console.log("删除订单");
         this.$confirm(
-          "此操作将永久删除仓库信息 " + currentStorage.warehouseId + ", 是否继续?",
+          "此操作将永久删除仓库信息 " + currentStorage.warehouseid + ", 是否继续?",
           "提示",
           {
             type: "warning"
           }
         )
           .then(() => {
-            //向请求服务端删除
-            this.$ajax
-              .post(
-                //--------------------------后台接口修改-------------------------//
-                "http://localhost:8080/warehouse/delete/" +
-                currentStorage.warehouseId
-              )
-              .then(response => {
-                console.log(response);
-                if (response.data === 1) {
-                  this.open1();
-                }
-              })
-              .catch(function(error) {
-                console.log("delete failed！");
-              });
+
+            AjaxHelper.get("http://localhost:8081/warehouse/delete", {warehouseId:currentStorage.warehouseid}, (data) => {
+              if(data.status==1){
+                this.$message.info("删除成功!");
+                this.$router.go(0);
+              }else {
+                this.$message.info(data.msg);
+              }
+            });
+
           })
           .catch(() => {
             this.$message.info("已取消操作!");
@@ -269,18 +228,15 @@
     },
 
     mounted() {
-      // 加载数据
       console.log("loading data.");
-      this.$ajax({
-        method: "get",
-        //------------------------后台接口修改-----------------------------//
-        url: "http://localhost:8080/warehouse/findAll"
-      }).then(response => {
-        console.log(response.data);
-        for (let i = 0; i < response.data.length; i++) {
-          this.Storage.push(response.data[i]);
-        }
-      });
+      console.log(JSON.stringify({pageNum: 1}));
+      AjaxHelper.get("http://localhost:8081/warehouse/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
+        console.log(data);
+        var list = data.list;
+        list.forEach(item => {
+          this.Storage.push(item);
+        });
+      })
     },
 
     data() {
@@ -289,40 +245,40 @@
         dialogUpdateVisible: false,
         word: "", // 搜索框的值
         create: {
-          warehouseId: "",
-          warehouseName: "",
-          warehouseType: ""
+          warehouseid: "",
+          warehousename: "",
+          warehousetype: ""
         },
 
         createRules: {
-          warehouseId: [
+          warehouseid: [
             {required: true, message: '请输入仓库编号', trigger: 'blur'}
           ],
-          warehouseName: [
+          warehousename: [
             {required: true, message: '请输入仓库名称', trigger: 'blur'}
           ],
-          warehouseType: [
+          warehousetype: [
             {required: true, message: '请输入仓库类型', trigger: 'blur'},
-            { min: 1, max: 1, message: '输入1～2', trigger: 'blur' }
+            {min: 1, max: 10, message: '输入1～10', trigger: 'blur'}
           ]
         },
         update: {
-          warehouseId: "",
-          warehouseName: "",
-          warehouseType: "",
+          warehouseid: "",
+          warehousename: "",
+          warehousetype: "",
           sum_money: ""
         },
 
         updateRules: {
-          warehouseId: [
+          warehouseid: [
             {required: true, message: '请输入仓库编号', trigger: 'blur'}
           ],
-          warehouseName: [
+          warehousename: [
             {required: true, message: '请输入仓库名称', trigger: 'blur'}
           ],
-          warehouseType: [
+          warehousetype: [
             {required: true, message: '请输入仓库类型', trigger: 'blur'},
-            { min: 1, max: 1, message: '输入1～2', trigger: 'blur' }
+            {min: 1, max: 10, message: '输入1～10', trigger: 'blur'}
           ]
         },
         Storage: [],
@@ -334,7 +290,7 @@
 
 <style scoped>
   .orderTitle {
-  //border-bottom: 2px #409eff solid;
+  / / border-bottom: 2 px #409eff solid;
     font-size: 35px;
     padding-bottom: 10px;
   }
