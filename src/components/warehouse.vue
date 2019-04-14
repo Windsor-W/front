@@ -69,7 +69,7 @@
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="100px">
         <el-form-item label="仓库编号:" prop="warehouseid">
-          <el-input v-model="update.warehouseid" disabled></el-input>
+          <el-input v-model="update.warehouseid" disabled title="仓库编号无法修改"></el-input>
         </el-form-item>
         <el-form-item label="仓库名字" prop="warehousename">
           <el-input v-model="update.warehousename"></el-input>

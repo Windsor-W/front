@@ -21,13 +21,13 @@
     <el-table :data="production" style="width: 100%">
       <el-table-column label="物品编号" prop="goodsId" align="center"></el-table-column>
       <el-table-column label="物品名称" prop="goodsName" align="center"></el-table-column>
-      <el-table-column label="仓库编号" prop="storehouseId" align="center"></el-table-column>
-      <el-table-column label="数量" prop="measurementUnits" align="center"></el-table-column>
-      <el-table-column label="计量单位" prop="goodsSum" align="center"></el-table-column>
-      <el-table-column label="计划单价" prop="predictPrice" align="center"></el-table-column>
+      <el-table-column label="仓库编号" prop="warehouseId" align="center"></el-table-column>
+      <el-table-column label="数量" prop="goodsNumber" align="center"></el-table-column>
+      <el-table-column label="计划单价" prop="planPrice" align="center"></el-table-column>
+      <el-table-column label="供应单价" prop="singlePrice" align="center"></el-table-column>
       <el-table-column align="right">
         <template slot="header" slot-scope="scope">
-          <el-input v-model="input1" size="small" placeholder="输入物品编号搜索" @keyup.enter.native="find"/>
+          <el-input v-model="input1" size="small" placeholder="输入物品编号搜索" @keyup.enter.native="selectByKeyword"/>
         </template>
         <template slot-scope="scope">
           <el-button size="mini" @click="setCurrent(scope.row)">编辑</el-button>
@@ -54,25 +54,32 @@
           </el-row>
           <el-row>
             <el-col :span="10">
-              <el-form-item label="仓库编号：" prop="storehouseId">
-                <el-input v-model="create.storehouseId"></el-input>
+              <el-form-item label="仓库：" prop="goodsNumber">
+                <el-select v-model="create.warehouseId" placeholder="请选择">
+                  <el-option
+                    v-for="item in options"
+                    :key="item.value + '-label'"
+                    :label="item.label"
+                    :value="item.value ">
+                  </el-option>
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="10">
-              <el-form-item label="数量：" prop="goodsSum">
-                <el-input v-model="create.goodsSum"></el-input>
+              <el-form-item label="数量：" prop="goodsNumber">
+                <el-input v-model="create.goodsNumber"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
           <el-row>
             <el-col :span="10">
-              <el-form-item label="计量单位：" prop="measurementUnits">
-                <el-input v-model="create.measurementUnits"></el-input>
+              <el-form-item label="计划单价：" prop="planPrice">
+                <el-input v-model="create.planPrice"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="10">
-              <el-form-item label="计划单价：" prop="predictPrice">
-                <el-input v-model="create.predictPrice"></el-input>
+              <el-form-item label="供应单价：" prop="singlePrice">
+                <el-input v-model="create.singlePrice"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
@@ -94,22 +101,22 @@
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="120px">
         <el-form-item label="物品编号：" prop="goodsId">
-          <el-input v-model="update.goodsId" readonly="true"></el-input>
+          <el-input v-model="update.goodsId" readonly="true" disabled title="物品编号无法修改"></el-input>
         </el-form-item>
         <el-form-item label="物品名称：" prop="goodsName">
           <el-input v-model="update.goodsName"></el-input>
         </el-form-item>
-        <el-form-item label="仓库编号：" prop="storehouseId">
-          <el-input v-model="update.storehouseId"></el-input>
+        <el-form-item label="仓库编号：" prop="warehouseId">
+          <el-input v-model="update.warehouseId"></el-input>
         </el-form-item>
-        <el-form-item label="数量：" prop="goodsSum">
-          <el-input v-model="update.goodsSum"></el-input>
+        <el-form-item label="数量：" prop="goodsNumber">
+          <el-input v-model="update.goodsNumber"></el-input>
         </el-form-item>
-        <el-form-item label="计量单位：" prop="measurementUnits">
-          <el-input v-model="update.measurementUnits"></el-input>
+        <el-form-item label="计划单价：" prop="planPrice">
+          <el-input v-model="update.planPrice"></el-input>
         </el-form-item>
-        <el-form-item label="计划单价：" prop="predictPrice">
-          <el-input v-model="update.predictPrice"></el-input>
+        <el-form-item label="计划单价：" prop="singlePrice">
+          <el-input v-model="update.singlePrice"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -121,29 +128,48 @@
 </template>
 
 <script>
+  import {AjaxHelper} from "../../static/js/AjaxHelper";
   export default {
     name: "Goods",
     inject: ["reload"],
     mounted() {
       // 加载数据
       console.log("loading data.");
-      this.$ajax({
-        method: "get",
-        url: "http://localhost:8080/goods/findAll"
-      }).then(response => {
-        console.log(response.data);
-        for (let i = 0; i < response.data.length; i++) {
-          this.production.push(response.data[i]);
-        }
-      });
+      this.init();
+      this.getWarehouse();
     },
 
     methods: {
+      getWarehouse(){
+        AjaxHelper.get("http://localhost:8081/warehouse/selectAll",{pageNum: 1, pageSize: 10},(jsonResult)=>{
+          var list = jsonResult.list;
+          var option={};
+          for(let i = 0; i< list.length; i++){
+            option.value = list[i].warehouseid;
+            option.label = list[i].warehousetype;
+            this.options.push(option);
+            option = {};
+          }
+        })
+      },
+      init(){
+        AjaxHelper.get("http://localhost:8081/goods/selectAll",{pageNum: 1, pageSize: 10},(jsonResult)=>{
+          var list = jsonResult.list;
+          if(list==null){
+            this.$message.info("暂无商品信息");
+          }else {
+            console.log("list"+list);
+            list.forEach(item=>{
+              this.production.push(item);
+            })
+          }
+        })
+      },
       //提交表单
       submitForm(formName) {
         this.$refs[formName].validate((valid) => {
           if (valid) {
-            this.check();
+            this.createGoods();
           } else {
             console.log('新建失败');
             return false;
@@ -160,48 +186,27 @@
           }
         });
       },
-      check() {
-        let goodsId = this.create.goodsId;
-        //调用数据库findOne接口查找仓库编号信息
-        this.$ajax.post('http://localhost:8080/goods/findOne/' + goodsId,).then(response=> {
-          console.log(response.data);
-          //仓库不存在，新建
-          if(response.data === '' || response.data === null) {
-            this.createProduction();
-          }
-          else {
-            this.$message.error("该物品已存在");
-            return false;
-          }
-        }).catch(function (error){
-          console.log("新建失败")
-        });
-      },
-      // 新建订单
-      createProduction() {
+      createGoods() {
         let data = this.create;
         console.log(data);
-        this.$ajax
-          .post("http://localhost:8080/goods/saveOne/", JSON.stringify(data), {
-            headers: { "Content-Type": "application/json;charset=UTF-8" }
-          })
-          .then(response => {
-            console.log(response);
-            this.dialogCreateVisible = false;
-            this.open2();
-          })
-          .catch(function(error) {
-            console.log("save failed！");
-          });
+        console.log("this.data.warehouseId"+data.warehouseId);
+        AjaxHelper.post("http://localhost:8081/goods/add",data,(jsonResult)=>{
+          if(jsonResult.status==1){
+            this.$message.info(jsonResult.msg);
+            this.$router.go(0);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
       setCurrent(currentProduct) {
         console.log(currentProduct);
         this.update.goodsId = currentProduct.goodsId;
         this.update.goodsName = currentProduct.goodsName;
-        this.update.measurementUnits = currentProduct.measurementUnits;
-        this.update.storehouseId = currentProduct.storehouseId;
-        this.update.predictPrice = currentProduct.predictPrice;
-        this.update.goodsSum = currentProduct.goodsSum;
+        this.update.planPrice = currentProduct.planPrice;
+        this.update.warehouseId = currentProduct.warehouseId;
+        this.update.singlePrice = currentProduct.singlePrice;
+        this.update.goodsNumber = currentProduct.goodsNumber;
         this.dialogUpdateVisible = true;
         console.log(this.dialogUpdateVisible);
       },
@@ -209,26 +214,21 @@
         let data = {
           goodsId: this.update.goodsId,
           goodsName: this.update.goodsName,
-          measurementUnits: this.update.measurementUnits,
-          storehouseId: this.update.storehouseId,
-          predictPrice: this.update.predictPrice,
-          goodsSum: this.update.goodsSum
+          planPrice: this.update.planPrice,
+          warehouseId: this.update.warehouseId,
+          singlePrice: this.update.singlePrice,
+          goodsNumber: this.update.goodsNumber
         };
         console.log(data);
-        console.log(JSON.stringify(data));
-        this.$ajax
-          .post("http://localhost:8080/goods/updateOne/", JSON.stringify(data), {
-            headers: { "Content-Type": "application/json;charset=UTF-8" }
-          })
-          .then(response => {
-            console.log(response);
-            this.dialogCreateVisible = false;
-            this.open3();
-            this.reload();
-          })
-          .catch(function(error) {
-            console.log("update failed！");
-          });
+        AjaxHelper.post("http://localhost:8081/goods/update",data,(jsonResult)=>{
+          if(jsonResult.status==1){
+            this.$message.info(jsonResult.msg);
+            this.$router.go(0);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+
+        })
       },
       // 删除订单
       removed(currentProduct) {
@@ -244,18 +244,14 @@
             console.log("确认删除物品信息");
             // 向请求服务端删除
             let goodsId = currentProduct.goodsId;
-            console.log(goodsId);
-            this.$ajax
-              .get("http://localhost:8080/goods/deleteOne/" + goodsId)
-              .then(response => {
-                console.log(response);
-                if (response.data == "success") {
-                  this.open1();
-                }
-              })
-              .catch(function(error) {
-                console.log("delete failed！");
-              });
+            AjaxHelper.get("http://localhost:8081/goods/delete",{goodsId:goodsId},(jsonResult)=>{
+              if(jsonResult.status==1){
+                this.$message.info(jsonResult.msg);
+                this.$router.go(0);
+              }else{
+                this.$message.info(jsonResult.msg);
+              }
+            })
           })
           .catch(() => {
             this.$message.info("已取消操作!");
@@ -282,23 +278,22 @@
         });
       },
       //查询订单
-      find() {
+      selectByKeyword() {
         if (this.input1 === '') {return;}
         //let data = this.input1;
         console.log(this.input1);
-        this.$ajax
-          .post("http://localhost:8080/goods/findOne/" + this.input1)
-          .then(response => {
-            if(response.data===''){
-              this.production=[];
-              return;
-            }
-            this.production=[];
-            this.production.push(response.data);
-          })
-          .catch(function (error) {
-            console.log("found failed!");
-          });
+        AjaxHelper.get("http://localhost:8081/goods/retrieval",{keyword:this.input1},(jsonResult)=>{
+          if(jsonResult.status==1){
+            var list = jsonResult.data.list;
+            this.production = [];
+            list.forEach(item=>{
+              this.production.push(item);
+            });
+            console.log(jsonResult);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
     },
 
@@ -311,10 +306,10 @@
         create: {
           goodsId: "",
           goodsName: "",
-          measurementUnits: "",
-          storehouseId: "",
-          goodsSum: "",
-          predictPrice: ""
+          planPrice: "",
+          warehouseId: "",
+          goodsNumber: "",
+          singlePrice: ""
         },
         createRules: {
           goodsId: [
@@ -323,26 +318,26 @@
           goodsName: [
             {required: true, message: '请输入物品名称', trigger: 'blur'}
           ],
-          measurementUnits: [
-            {required: true, message: '请输入计量单位', trigger: 'blur'},
+          planPrice: [
+            {required: true, message: '请输入计划单价', trigger: 'blur'},
           ],
-          storehouseId: [
+          warehouseId: [
             {required: true, message: '请输入仓库编号', trigger: 'blur'}
           ],
-          goodsSum: [
+          goodsNumber: [
             {required: true, message: '请输入物品数量', trigger: 'blur'}
           ],
-          predictPrice: [
+          singlePrice: [
             {required: true, message: '请输入计划单价', trigger: 'blur'}
           ]
         },
         update: {
           goodsId: "",
           goodsName: "",
-          measurementUnits: "",
-          storehouseId: "",
-          goodsSum: "",
-          predictPrice: ""
+          planPrice: "",
+          warehouseId: "",
+          goodsNumber: "",
+          singlePrice: ""
         },
         updateRules: {
           goodsId: [
@@ -351,21 +346,23 @@
           goodsName: [
             {required: true, message: '请输入物品名称', trigger: 'blur'}
           ],
-          measurementUnits: [
-            {required: true, message: '请输入计量单位', trigger: 'blur'},
+          planPrice: [
+            {required: true, message: '请输入计划单价', trigger: 'blur'},
           ],
-          storehouseId: [
+          warehouseId: [
             {required: true, message: '请输入仓库编号', trigger: 'blur'}
           ],
-          goodsSum: [
+          goodsNumber: [
             {required: true, message: '请输入物品数量', trigger: 'blur'}
           ],
-          predictPrice: [
+          singlePrice: [
             {required: true, message: '请输入计划单价', trigger: 'blur'}
           ]
         },
         production: [],
-        input1: ""
+        input1: "",
+        options: [],
+        value: ''
       };
     }
   }

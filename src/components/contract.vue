@@ -27,7 +27,7 @@
       <el-table-column label="实际入库数量" prop="realNumber" align="center"></el-table-column>
       <el-table-column align="right">
         <template slot="header" slot-scope="scope">
-          <el-input v-model="input1" size="small" @change="find" placeholder="输入合同号搜索" @keyup.enter.native="find"/>
+          <el-input v-model="input1" size="small" @change="selectByKeyword" placeholder="输入合同号搜索" @keyup.enter.native="selectByKeyword"/>
         </template>
         <template slot-scope="scope">
           <el-button size="mini" @click="setCurrent(scope.row)">编辑</el-button>
@@ -40,12 +40,12 @@
       <div align="center">
         <el-form :model="create" :rules="createRules" ref="create" label-width="150px">
           <el-row>
-            <el-col span="11">
+            <el-col :span="11">
               <el-form-item label="合同号：" prop="contractId">
                 <el-input v-model="create.contractId"></el-input>
               </el-form-item>
             </el-col>
-            <el-col span="11">
+            <el-col :span="11">
               <el-form-item label="供应商号：" prop="contractShop">
                 <el-input v-model="create.contractShop"></el-input>
               </el-form-item>
@@ -54,22 +54,29 @@
           <el-row>
             <el-col :span="11">
               <el-form-item label="物品编号：" prop="goodsId">
-                <el-input v-model="create.goodsId"></el-input>
+                <el-select v-model="create.goodsId" placeholder="请选择">
+                  <el-option
+                    v-for="item in options"
+                    :key="item.value + '-label'"
+                    :label="item.label"
+                    :value="item.value ">
+                  </el-option>
+                </el-select>
               </el-form-item>
             </el-col>
-            <el-col span="11">
+            <el-col :span="11">
               <el-form-item label="供应单价：" prop="singlePrice">
                 <el-input v-model="create.singlePrice"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
           <el-row>
-            <el-col span="11">
+            <el-col :span="11">
               <el-form-item label="合同数量：" prop="contractNumber">
                 <el-input v-model="create.contractNumber"></el-input>
               </el-form-item>
             </el-col>
-            <el-col span="11">
+            <el-col :span="11">
               <el-form-item label="实际入库数量：" prop="realNumber">
                 <el-input v-model="create.realNumber"></el-input>
               </el-form-item>
@@ -78,8 +85,8 @@
         </el-form>
       </div>
       <div slot="footer" class="dialog-footer" align="center">
-        <el-button type="info" @click="submitForm('create')" >确 定</el-button>
-        <el-button @click="dialogCreateVisible = false" >取 消</el-button>
+        <el-button type="info" @click="submitForm('create')">确 定</el-button>
+        <el-button @click="dialogCreateVisible = false">取 消</el-button>
       </div>
     </el-dialog>
 
@@ -92,13 +99,20 @@
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="150px">
         <el-form-item label="合同号：" prop="contractId">
-          <el-input v-model="update.contractId" readonly="true"></el-input>
+          <el-input v-model="update.contractId" disabled title="合同号不可修改"></el-input>
         </el-form-item>
         <el-form-item label="供应商号：" prop="contractShop">
           <el-input v-model="update.contractShop"></el-input>
         </el-form-item>
         <el-form-item label="物品编号：" prop="goodsId">
-          <el-input v-model="update.goodsId"></el-input>
+          <el-select v-model="update.goodsId" placeholder="请选择">
+            <el-option
+              v-for="item in updateOptions"
+              :key="item.value + '-label'"
+              :label="item.label"
+              :value="item.value ">
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="供应单价：" prop="singlePrice">
           <el-input v-model="update.singlePrice"></el-input>
@@ -119,50 +133,63 @@
 </template>
 
 <script>
+  import {AjaxHelper} from "../../static/js/AjaxHelper"
+
   export default {
     name: "Contracts",
     inject: ["reload"],
     mounted() {
       // 加载数据
-      console.log("loading data.");
-      this.$ajax({
-        method: "get",
-        url: "http://localhost:8080/contract/findAll"
-      }).then(response => {
-        console.log(response.data);
-        for (let i = 0; i < response.data.length; i++) {
-          this.Contract.push(response.data[i]);
-        }
-      });
+      this.init();
+      this.getGoods();
     },
 
     methods: {
+      init() {
+        AjaxHelper.get("http://localhost:8081/contract/selectAll", {pageNum: 1, pageSize: 10}, (jsonResult) => {
+          var list = jsonResult.list;
+          list.forEach(item => {
+            this.Contract.push(item);
+          });
+
+        })
+      },
+      getGoods() {
+        AjaxHelper.get("http://localhost:8081/goods/selectAll", {pageNum: 1, pageSize: 10}, (jsonResult) => {
+          var list = jsonResult.list;
+          var option = {};
+          list.forEach(item => {
+            option.value = item.goodsId;
+            option.label = item.goodsName;
+            this.options.push(option);
+            this.updateOptions.push(option);
+            option = {};
+          })
+        })
+      },
       //提交表单
       submitForm(formName) {
         this.$refs[formName].validate((valid) => {
           if (valid) {
-            this.check();
+            this.createContract();
           } else {
             console.log('新建失败');
             return false;
           }
         });
       },
-      check() {
-        //调用数据库findOne接口查找合同编号信息
-        this.$ajax.post('http://localhost:8080/contract/findOne/' + this.create.contractId,).then(response=> {
-          console.log(response.data);
-          //合同不存在，新建
-          if(response.data === '' || response.data === null) {
-            this.createContract();
+      // 新建合同
+      createContract() {
+        let data = this.create;
+        AjaxHelper.post("http://localhost:8081/contract/add", data, (jsonResult) => {
+          if (jsonResult.status == 1) {
+            this.$message.info(jsonResult.msg);
+            this.dialogCreateVisible = false;
+            this.$router.go(0);
+          } else {
+            this.$message.info(jsonResult.msg);
           }
-          else {
-            this.$message.error("该合同已存在");
-            return false;
-          }
-        }).catch(function (error){
-          console.log("新建失败")
-        });
+        })
       },
       //提交表单
       submitForm2(formName) {
@@ -175,27 +202,7 @@
           }
         });
       },
-      // 新建合同
-      createContract() {
-        let data = this.create;
-        console.log(data);
-        this.$ajax
-          .post(
-            "http://localhost:8080/contract/saveOne/",
-            JSON.stringify(data),
-            {
-              headers: { "Content-Type": "application/json;charset=UTF-8" }
-            }
-          )
-          .then(response => {
-            console.log(response);
-            this.dialogCreateVisible = false;
-            this.open2();
-          })
-          .catch(function(error) {
-            console.log("save failed！");
-          });
-      },
+
       setCurrent(currentContract) {
         console.log(currentContract);
         this.update.contractId = currentContract.contractId;
@@ -218,23 +225,16 @@
           realNumber: this.update.realNumber
         };
         console.log(data);
-        this.$ajax
-          .post(
-            "http://localhost:8080/contract/updateOne/",
-            JSON.stringify(data),
-            {
-              headers: { "Content-Type": "application/json;charset=UTF-8" }
-            }
-          )
-          .then(response => {
-            console.log(response);
-            this.dialogCreateVisible = false;
-            this.open3();
-            this.reload();
-          })
-          .catch(function(error) {
-            console.log("update failed！");
-          });
+        AjaxHelper.post("http://localhost:8081/contract/update", data, (jsonResult) => {
+          if (jsonResult.status == 1) {
+            console.log(jsonResult);
+            this.dialogUpdateVisible = false;
+            this.$message.info(jsonResult.msg);
+            this.$router.go(0);
+          } else {
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
 
       removed(currentContract) {
@@ -250,23 +250,15 @@
         ).then(() => {
           console.log("确认删除采购合同信息");
           // 向请求服务端删除
-          this.$ajax
-            .get(
-              "http://localhost:8080/contract/deleteOne/" + currentContract.contractId
-            )
-            .then(response => {
-              console.log(response);
-              if (response.data == "success") {
-                this.open1();
+          AjaxHelper.get("http://localhost:8081/contract/delete", {contractId: currentContract.contractId}, (jsonResult) => {
+              if(jsonResult.status==1){
+                this.$message.info(jsonResult.msg);
+                this.$router.go(0);
+              }else{
+                this.$message.info(jsonResult.msg);
               }
-            })
-            .catch(function(error) {
-              console.log("delete failed！");
-            });
-        })
-          .catch(() => {
-            this.$message.info("已取消操作!");
-          });
+          })
+        });
       },
       open1() {
         this.$message({
@@ -289,23 +281,24 @@
         });
       },
       //查询合同
-      find() {
-        if (this.input1 === '') {return;}
+      selectByKeyword() {
+        if (this.input1 === '') {
+          return;
+        }
         //let data = this.input1;
         console.log(this.input1);
-        this.$ajax
-          .post("http://localhost:8080/contract/findOne/" + this.input1)
-          .then(response => {
-            if(response.data===''){
-              this.Contract=[];
-              return;
-            }
-            this.Contract=[];
-            this.Contract.push(response.data);
-          })
-          .catch(function (error) {
-            console.log("found failed!");
-          });
+        AjaxHelper.get("http://localhost:8081/contract/retrieval",{keyword:this.input1},(jsonResult)=>{
+          if(jsonResult.status==1){
+            var list = jsonResult.data.list;
+            this.Contract = [];
+            list.forEach(item=>{
+              this.Contract.push(item);
+            });
+            this.$message.info(jsonResult.msg);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
     },
     data() {
@@ -348,7 +341,10 @@
           realNumber: [{required: true, message: '请输入实际入库数量', trigger: 'blur'}]
         },
         Contract: [],
-        input1: ""
+        input1: "",
+        options: [],
+        value: '',
+        updateOptions: []
       };
     }
   }
@@ -356,8 +352,12 @@
 
 <style scoped>
   .orderTitle {
-  //border-bottom: 2px #409eff solid;
+  / / border-bottom: 2 px #409eff solid;
     font-size: 35px;
     padding-bottom: 10px;
+  }
+
+  .el-select {
+    width: 100%;
   }
 </style>
