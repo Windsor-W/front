@@ -35,7 +35,17 @@
         </template>
       </el-table-column>
     </el-table>
-
+    <!--分页器-->
+    <el-pagination
+      background
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-size="10"
+      :pager-count="5"
+      layout="total, prev, pager, next"
+      :total="count">
+    </el-pagination>
     <!-- 新建物品 -->
     <el-dialog title="添加新物品" :visible.sync="dialogCreateVisible" width="550px">
       <div align="center">
@@ -140,6 +150,21 @@
     },
 
     methods: {
+      handleSizeChange(val){
+
+      },
+      handleCurrentChange(val){
+        this.currentPage = val;
+        AjaxHelper.get("http://localhost:8081/goods/selectAll", {pageNum: this.currentPage, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          this.production = [];
+          list.forEach(item => {
+            this.production.push(item);
+          });
+        });
+      },
       getWarehouse(){
         AjaxHelper.get("http://localhost:8081/warehouse/selectAll",{pageNum: 1, pageSize: 10},(jsonResult)=>{
           var list = jsonResult.list;
@@ -155,6 +180,7 @@
       init(){
         AjaxHelper.get("http://localhost:8081/goods/selectAll",{pageNum: 1, pageSize: 10},(jsonResult)=>{
           var list = jsonResult.list;
+          this.count = jsonResult.list.length;
           if(list==null){
             this.$message.info("暂无商品信息");
           }else {
@@ -362,7 +388,9 @@
         production: [],
         input1: "",
         options: [],
-        value: ''
+        value: '',
+        currentPage:1,
+        count:0
       };
     }
   }

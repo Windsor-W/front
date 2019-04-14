@@ -6,11 +6,10 @@
         <b>
           <i class="el-icon-edit"></i>
         </b>
-        <span><b>物品出库信息</b></span>
+        <span><b>物品出库</b></span>
       </el-col>
       <div style="margin-top: 40px;">
         <el-col :span="24" align="left">
-          <el-button type="info" size="small" @click="dialogCreateVisible = true">添加物品出库信息</el-button>
         </el-col>
       </div>
     </el-row>
@@ -27,7 +26,7 @@
       <el-table-column label="订单编号" prop="orderId" align="center"></el-table-column>
       <el-table-column align="right">
         <template slot="header" slot-scope="scope">
-          <el-input v-model="input1" size="small" @change="find" placeholder="输入出库单编号搜索" @keyup.enter.native="find"/>
+          <el-input v-model="input1" size="small" @change="selectByKeyword" placeholder="输入出库单编号搜索" @keyup.enter.native="selectByKeyword"/>
         </template>
         <template slot-scope="scope">
           <el-button size="mini" @click="setCurrent(scope.row)">编辑</el-button>
@@ -35,6 +34,17 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <el-pagination
+      background
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-size="10"
+      :pager-count="5"
+      layout="total, prev, pager, next"
+      :total="count">
+    </el-pagination>
 
     <!-- 新建出库单 -->
     <el-dialog title="添加出库单" :visible.sync="dialogCreateVisible" width="600px">
@@ -99,13 +109,14 @@
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="120px">
         <el-form-item label="出库单编号：" prop="exportId">
-          <el-input v-model="update.exportId" readonly="true"></el-input>
+          <el-input v-model="update.exportId" disabled></el-input>
         </el-form-item>
         <el-form-item label="出库日期：" prop="exportDate">
           <el-date-picker
             v-model="update.exportDate"
             type="datetime"
             placeholder="选择日期时间"
+            value-format="timestamp"
             style="width:100%"
           ></el-date-picker>
           <!-- <el-input v-model="update.exportDate"></el-input> -->
@@ -132,24 +143,41 @@
 </template>
 
 <script>
+  import {AjaxHelper} from "../../static/js/AjaxHelper";
   export default {
     name: "inStorage",
     inject: ["reload"],
     mounted() {
       // 加载数据
-      console.log("loading data.");
-      this.$ajax({
-        method: "get",
-        url: "http://localhost:8080/warehouseExport/findAll"
-      }).then(response => {
-        console.log(response.data);
-        for (let i = 0; i < response.data.length; i++) {
-          this.warehouseExport.push(response.data[i]);
-        }
-      });
+      this.init();
     },
 
     methods: {
+      init(){
+        AjaxHelper.get("http://localhost:8081/export/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          list.forEach(item => {
+            this.warehouseExport.push(item);
+          });
+        });
+      },
+      handleSizeChange(val){
+
+      },
+      handleCurrentChange(val){
+        this.currentPage = val;
+        AjaxHelper.get("http://localhost:8081/order/selectAll", {pageNum: this.currentPage, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          this.warehouseExport = [];
+          list.forEach(item => {
+            this.warehouseExport.push(item);
+          });
+        });
+      },
       //提交表单
       submitForm(formName) {
         this.$refs[formName].validate((valid) => {
@@ -229,23 +257,17 @@
           exportNumber: this.update.exportNumber
         };
         console.log(data);
-        this.$ajax
-          .post(
-            "http://localhost:8080/warehouseExport/updateOne/",
-            JSON.stringify(data),
-            {
-              headers: { "Content-Type": "application/json;charset=UTF-8" }
-            }
-          )
-          .then(response => {
-            console.log(response);
-            this.dialogCreateVisible = false;
-            this.open3();
-            this.reload();
-          })
-          .catch(function(error) {
-            console.log("update failed！");
-          });
+        console.log(data);
+        AjaxHelper.post("http://localhost:8081/export/update", data, (jsonResult) => {
+          console.log(jsonResult);
+          if (jsonResult.status == 1) {
+            this.dialogUpdateVisible = false;
+            this.$message.info(jsonResult.msg);
+            this.$router.go(0);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
       // 删除订单
       removed(currentStock) {
@@ -300,23 +322,22 @@
         });
       },
 
-      find() {
+      selectByKeyword() {
         if(this.input1===''){
           return;
         }
-        this.$ajax
-          .get("http://localhost:8080/warehouseExport/findOne/" + this.input1)
-          .then(response => {
-            if(response.data===''){
-              this.warehouseExport=[];
-              return;
-            }
-            this.warehouseExport=[];
-            this.warehouseExport.push(response.data);
-          })
-          .catch(function(error) {
-            console.log("found failed！");
-          });
+        AjaxHelper.get("http://localhost:8081/export/retrieval",{keyword:this.input1},(jsonResult)=>{
+          if(jsonResult.status==1){
+            var list = jsonResult.data.list;
+            this.warehouseExport = [];
+            list.forEach(item=>{
+              this.warehouseExport.push(item);
+            });
+            this.$message.info(jsonResult.msg);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       }
     },
 
@@ -358,7 +379,9 @@
           exportNumber: [{required: true, message: '请输出库存数量', trigger: 'blur'}]
         },
         warehouseExport: [],
-        input1: ""
+        input1: "",
+        currentPage:1,
+        count:0
       };
     }
 

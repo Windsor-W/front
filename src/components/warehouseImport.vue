@@ -10,11 +10,9 @@
       </el-col>
       <div style="margin-top: 40px;">
         <el-col :span="24" align="left">
-          <el-button type="info" size="small" @click="dialogCreateVisible = true">添加物品入库信息</el-button>
         </el-col>
       </div>
     </el-row>
-
     <br>
 
     <!-- 入库信息汇总 -->
@@ -27,15 +25,24 @@
       <el-table-column label="合同号" prop="contractId" align="center"></el-table-column>
       <el-table-column align="right">
         <template slot="header" slot-scope="scope">
-          <el-input v-model="input1" size="small" @change="find" placeholder="输入入库单编号搜索" @keyup.enter.native="find"/>
+          <el-input v-model="input1" size="small" @change="selectByKeyword" placeholder="输入入库单编号搜索" @keyup.enter.native="selectByKeyword"/>
         </template>
         <template slot-scope="scope">
           <el-button size="mini" @click="setCurrent(scope.row)">编辑</el-button>
-          <el-button size="mini" type="danger" @click="removed(scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
+    <el-pagination
+      background
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-size="10"
+      :pager-count="5"
+      layout="total, prev, pager, next"
+      :total="count">
+    </el-pagination>
     <!-- 新建入库单 -->
     <el-dialog title="添加入库单" :visible.sync="dialogCreateVisible" width="600px">
       <div align="center">
@@ -99,28 +106,37 @@
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="120px">
         <el-form-item label="入库单编号：" prop="importId">
-          <el-input v-model="update.importId" readonly="true"></el-input>
+          <el-input v-model="update.importId" disabled></el-input>
         </el-form-item>
         <el-form-item label="入库日期：" prop="entryDate">
           <el-date-picker
             v-model="update.entryDate"
             type="datetime"
+            value-format="timestamp"
             placeholder="选择日期时间"
             style="width:100%"
           ></el-date-picker>
           <!-- <el-input v-model="update.entryDate"></el-input> -->
         </el-form-item>
         <el-form-item label="仓库编号：" prop="warehouseId">
-          <el-input v-model="update.warehouseId"></el-input>
+          <el-select v-model="update.warehouseId" placeholder="请选择">
+            <el-option
+              style="width:100%"
+              v-for="item in options"
+              :key="item.value + '-label'"
+              :label="item.label"
+              :value="item.value ">
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="物品编号：" prop="goodsId">
-          <el-input v-model="update.goodsId"></el-input>
+          <el-input v-model="update.goodsId" disabled></el-input>
         </el-form-item>
         <el-form-item label="数量：" prop="importNumber">
-          <el-input v-model="update.importNumber"></el-input>
+          <el-input v-model="update.importNumber" disabled></el-input>
         </el-form-item>
         <el-form-item label="合同号：" prop="contractId">
-          <el-input v-model="update.contractId"></el-input>
+          <el-input v-model="update.contractId" disabled></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -132,24 +148,55 @@
 </template>
 
 <script>
+  import {AjaxHelper} from "../../static/js/AjaxHelper";
   export default {
     name: "inStorage",
     inject: ["reload"],
     mounted() {
       // 加载数据
       console.log("loading data.");
-      this.$ajax({
-        method: "get",
-        url: "http://localhost:8080/warehouseImport/findAll"
-      }).then(response => {
-        console.log(response.data);
-        for (let i = 0; i < response.data.length; i++) {
-          this.warehouseImport.push(response.data[i]);
-        }
-      });
+      this.init();
+      this.getWarehouse();
     },
 
     methods: {
+      init(){
+        AjaxHelper.get("http://localhost:8081/import/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          list.forEach(item => {
+            this.warehouseImport.push(item);
+          });
+          this.count = data.list.length;
+        });
+      },
+      handleSizeChange(val){
+
+      },
+      handleCurrentChange(val){
+        this.currentPage = val;
+        AjaxHelper.get("http://localhost:8081/import/selectAll", {pageNum: this.currentPage, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          this.warehouseImport = [];
+          list.forEach(item => {
+            this.warehouseImport.push(item);
+          });
+        });
+      },
+      getWarehouse(){
+        AjaxHelper.get("http://localhost:8081/warehouse/selectAll",{pageNum: 1, pageSize: 10},(jsonResult)=>{
+          var list = jsonResult.list;
+          var option={};
+          for(let i = 0; i< list.length; i++){
+            option.value = list[i].warehouseid;
+            option.label = list[i].warehouseid;
+            this.options.push(option);
+            option = {};
+          }
+        })
+      },
       //提交表单
       submitForm(formName) {
         this.$refs[formName].validate((valid) => {
@@ -229,23 +276,16 @@
           importNumber: this.update.importNumber
         };
         console.log(data);
-        this.$ajax
-          .post(
-            "http://localhost:8080/warehouseImport/updateOne/",
-            JSON.stringify(data),
-            {
-              headers: { "Content-Type": "application/json;charset=UTF-8" }
-            }
-          )
-          .then(response => {
-            console.log(response);
-            this.dialogCreateVisible = false;
-            this.open3();
-            this.reload();
-          })
-          .catch(function(error) {
-            console.log("update failed！");
-          });
+        AjaxHelper.post("http://localhost:8081/import/update", data, (jsonResult) => {
+          console.log(jsonResult);
+          if (jsonResult.status == 1) {
+            this.dialogUpdateVisible = false;
+            this.$message.info(jsonResult.msg);
+            this.$router.go(0);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
       // 删除订单
       removed(currentStock) {
@@ -300,23 +340,22 @@
         });
       },
 
-      find() {
+      selectByKeyword() {
         if(this.input1===''){
           return;
         }
-        this.$ajax
-          .get("http://localhost:8080/warehouseImport/findOne/" + this.input1)
-          .then(response => {
-            if(response.data===''){
-              this.warehouseImport=[];
-              return;
-            }
-            this.warehouseImport=[];
-            this.warehouseImport.push(response.data);
-          })
-          .catch(function(error) {
-            console.log("found failed！");
-          });
+        AjaxHelper.get("http://localhost:8081/import/retrieval",{keyword:this.input1},(jsonResult)=>{
+          if(jsonResult.status==1){
+            var list = jsonResult.data.list;
+            this.warehouseImport = [];
+            list.forEach(item=>{
+              this.warehouseImport.push(item);
+            });
+            this.$message.info(jsonResult.msg);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       }
     },
 
@@ -359,7 +398,11 @@
           importNumber: [{required: true, message: '请输入库存数量', trigger: 'blur'}]
         },
         warehouseImport: [],
-        input1: ""
+        input1: "",
+        options: [],
+        value: '',
+        currentPage:1,
+        count:0
       };
     }
 
@@ -372,7 +415,9 @@
     font-size: 35px;
     padding-bottom: 10px;
   }
-
+  .el-select{
+    width: 100%;
+  }
 
 
 </style>

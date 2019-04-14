@@ -1,5 +1,5 @@
 <template>
-  <div class="Contracts">
+  <div class="Orders">
     <el-row :gutter="20" class="orderTitle">
       <!--标题-->
       <el-col :span="24" align="center">
@@ -10,7 +10,6 @@
       </el-col>
       <div style="margin-top: 40px;">
         <el-col :span="24" align="left">
-          <el-button type="info" size="small" @click="dialogCreateVisible = true">添加订单信息</el-button>
         </el-col>
       </div>
     </el-row>
@@ -18,7 +17,7 @@
     <br>
 
     <!-- 订单信息汇总 -->
-    <el-table :data="Contract" style="width: 100%">
+    <el-table :data="Order" style="width: 100%">
       <el-table-column label="订单编号" prop="orderId" align="center"></el-table-column>
       <el-table-column label="订单创建时间" prop="orderTime" align="center"></el-table-column>
       <el-table-column label="消费者账号" prop="account" align="center"></el-table-column>
@@ -27,14 +26,20 @@
       <el-table-column label="数量" prop="orderNumber" align="center"></el-table-column>
       <el-table-column align="right">
         <template slot="header" slot-scope="scope">
-          <el-input v-model="input1" size="small" @change="find" placeholder="输入订单编号搜索" @keyup.enter.native="find"/>
-        </template>
-        <template slot-scope="scope">
-          <el-button size="mini" @click="setCurrent(scope.row)">编辑</el-button>
-          <el-button size="mini" type="danger" @click="removed(scope.row)">删除</el-button>
+          <el-input v-model="input1" size="small" @change="selectByKeyword" placeholder="输入订单编号搜索" @keyup.enter.native="selectByKeyword"/>
         </template>
       </el-table-column>
     </el-table>
+    <el-pagination
+      background
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-size="10"
+      :pager-count="5"
+      layout="total, prev, pager, next"
+      :total="count">
+    </el-pagination>
     <!-- 新建合同 -->
     <el-dialog title="添加订单" :visible.sync="dialogCreateVisible" width="730px">
       <div align="center">
@@ -112,7 +117,7 @@
           <el-input v-model="update.singlePrice"></el-input>
         </el-form-item>
         <el-form-item label="物品编号：" prop="goodsId">
-          <el-input v-model="update.contractNumber"></el-input>
+          <el-input v-model="update.OrderNumber"></el-input>
         </el-form-item>
         <el-form-item label="数量：" prop="orderNumber">
           <el-input v-model="update.orderNumber"></el-input>
@@ -127,24 +132,43 @@
 </template>
 
 <script>
+  import {AjaxHelper} from "../../static/js/AjaxHelper";
+
   export default {
-    name: "Contracts",
+    name: "Orders",
     inject: ["reload"],
     mounted() {
       // 加载数据
       console.log("loading data.");
-      this.$ajax({
-        method: "get",
-        url: "http://localhost:8080/order/findAll"
-      }).then(response => {
-        console.log(response.data);
-        for (let i = 0; i < response.data.length; i++) {
-          this.Contract.push(response.data[i]);
-        }
-      });
+      this.init();
     },
 
     methods: {
+      init(){
+        AjaxHelper.get("http://localhost:8081/order/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          list.forEach(item => {
+            this.Order.push(item);
+          });
+        });
+      },
+      handleSizeChange(val){
+
+      },
+      handleCurrentChange(val){
+        this.currentPage = val;
+        AjaxHelper.get("http://localhost:8081/order/selectAll", {pageNum: this.currentPage, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          this.warehouseImport = [];
+          list.forEach(item => {
+            this.warehouseImport.push(item);
+          });
+        });
+      },
       //提交表单
       submitForm(formName) {
         this.$refs[formName].validate((valid) => {
@@ -162,7 +186,7 @@
           console.log(response.data);
           //合同不存在，新建
           if(response.data === '' || response.data === null) {
-            this.createContract();
+            this.createOrder();
           }
           else {
             this.$message.error("该订单已存在");
@@ -176,7 +200,7 @@
       submitForm2(formName) {
         this.$refs[formName].validate((valid) => {
           if (valid) {
-            this.updateContract();
+            this.updateOrder();
           } else {
             console.log('修改失败');
             return false;
@@ -184,7 +208,7 @@
         });
       },
       // 新建合同
-      createContract() {
+      createOrder() {
         let data = this.create;
         console.log(data);
         this.$ajax
@@ -204,19 +228,19 @@
             console.log("save failed！");
           });
       },
-      setCurrent(currentContract) {
-        console.log(currentContract);
-        this.update.orderId = currentContract.orderId;
-        this.update.orderTime = currentContract.orderTime;
-        this.update.account = currentContract.account;
-        this.update.warehouseId = currentContract.warehouseId;
-        this.update.goodsId = currentContract.goodsId;
-        this.update.orderNumber = currentContract.orderNumber;
+      setCurrent(currentOrder) {
+        console.log(currentOrder);
+        this.update.orderId = currentOrder.orderId;
+        this.update.orderTime = currentOrder.orderTime;
+        this.update.account = currentOrder.account;
+        this.update.warehouseId = currentOrder.warehouseId;
+        this.update.goodsId = currentOrder.goodsId;
+        this.update.orderNumber = currentOrder.orderNumber;
         this.dialogUpdateVisible = true;
         console.log(this.dialogUpdateVisible);
       },
 
-      updateContract() {
+      updateOrder() {
         let data = {
           orderId: this.update.orderId,
           orderTime: this.update.orderTime,
@@ -245,11 +269,11 @@
           });
       },
 
-      removed(currentContract) {
+      removed(currentOrder) {
         console.log("删除订单信息");
         this.$confirm(
           "此操作将永久删除订单信息 " +
-          currentContract.orderId +
+          currentOrder.orderId +
           ", 是否继续?",
           "提示",
           {
@@ -260,7 +284,7 @@
           // 向请求服务端删除
           this.$ajax
             .get(
-              "http://localhost:8080/order/deleteOne/" + currentContract.orderId
+              "http://localhost:8080/order/deleteOne/" + currentOrder.orderId
             )
             .then(response => {
               console.log(response);
@@ -297,23 +321,22 @@
         });
       },
       //查询合同
-      find() {
+      selectByKeyword() {
         if (this.input1 === '') {return;}
         //let data = this.input1;
         console.log(this.input1);
-        this.$ajax
-          .post("http://localhost:8080/order/findOne/" + this.input1)
-          .then(response => {
-            if(response.data===''){
-              this.Contract=[];
-              return;
-            }
-            this.Contract=[];
-            this.Contract.push(response.data);
-          })
-          .catch(function (error) {
-            console.log("found failed!");
-          });
+        AjaxHelper.get("http://localhost:8081/order/retrieval",{keyword:this.input1},(jsonResult)=>{
+          if(jsonResult.status==1){
+            var list = jsonResult.data.list;
+            this.Order = [];
+            list.forEach(item=>{
+              this.Order.push(item);
+            });
+            this.$message.info(jsonResult.msg);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
     },
     data() {
@@ -354,8 +377,10 @@
           goodsId: [{required: true, message: '请输入物品编号', trigger: 'blur'}],
           orderNumber: [{required: true, message: '请输入订单数量', trigger: 'blur'}]
         },
-        Contract: [],
-        input1: ""
+        Order: [],
+        input1: "",
+        currentPage:1,
+        count:0
       };
     }
   }

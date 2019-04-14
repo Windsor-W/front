@@ -35,6 +35,17 @@
         </template>
       </el-table-column>
     </el-table>
+    <!--分页器-->
+    <el-pagination
+      background
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-size="10"
+      :pager-count="5"
+      layout="total, prev, pager, next"
+      :total="count">
+    </el-pagination>
     <!-- 新建合同 -->
     <el-dialog title="添加合同文件" :visible.sync="dialogCreateVisible" width="700px">
       <div align="center">
@@ -148,11 +159,27 @@
       init() {
         AjaxHelper.get("http://localhost:8081/contract/selectAll", {pageNum: 1, pageSize: 10}, (jsonResult) => {
           var list = jsonResult.list;
+          this.count = jsonResult.list.length;
           list.forEach(item => {
             this.Contract.push(item);
           });
 
         })
+      },
+      handleSizeChange(val){
+
+      },
+      handleCurrentChange(val){
+        this.currentPage = val;
+        AjaxHelper.get("http://localhost:8081/contract/selectAll", {pageNum: this.currentPage, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          this.Contract = [];
+          list.forEach(item => {
+            this.Contract.push(item);
+          });
+        });
       },
       getGoods() {
         AjaxHelper.get("http://localhost:8081/goods/selectAll", {pageNum: 1, pageSize: 10}, (jsonResult) => {
@@ -344,7 +371,9 @@
         input1: "",
         options: [],
         value: '',
-        updateOptions: []
+        updateOptions: [],
+        currentPage:1,
+        count:0
       };
     }
   }

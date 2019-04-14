@@ -39,7 +39,17 @@
         </template>
       </el-table-column>
     </el-table>
-
+    <!--分页器-->
+    <el-pagination
+      background
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-size="10"
+      :pager-count="5"
+      layout="total, prev, pager, next"
+      :total="count">
+    </el-pagination>
     <!-- 新建仓库 -->
     <el-dialog title="添加新仓库" :visible.sync="dialogCreateVisible" width="400px">
       <el-form :model="create" :rules="createRules" ref="create" label-width="100px">
@@ -93,7 +103,32 @@
     name: "Warehouse",
     inject: ['reload'],
     methods: {
+      init(){
+        AjaxHelper.get("http://localhost:8081/warehouse/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          list.forEach(item => {
+            this.Storage.push(item);
+          });
+        })
+      },
       //提交表单
+      handleSizeChange(val){
+
+      },
+      handleCurrentChange(val){
+        this.currentPage = val;
+        AjaxHelper.get("http://localhost:8081/import/selectAll", {pageNum: this.currentPage, pageSize: 10}, (data) => {
+          console.log(data);
+          var list = data.list;
+          this.count = data.list.length;
+          this.Storage = [];
+          list.forEach(item => {
+            this.Storage.push(item);
+          });
+        });
+      },
       submitForm(formName) {
         this.$refs[formName].validate((valid) => {
           if (valid) {
@@ -190,7 +225,6 @@
           }
         )
           .then(() => {
-
             AjaxHelper.get("http://localhost:8081/warehouse/delete", {warehouseId:currentStorage.warehouseid}, (data) => {
               if(data.status==1){
                 this.$message.info("删除成功!");
@@ -230,13 +264,7 @@
     mounted() {
       console.log("loading data.");
       console.log(JSON.stringify({pageNum: 1}));
-      AjaxHelper.get("http://localhost:8081/warehouse/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
-        console.log(data);
-        var list = data.list;
-        list.forEach(item => {
-          this.Storage.push(item);
-        });
-      })
+      this.init();
     },
 
     data() {
@@ -282,7 +310,9 @@
           ]
         },
         Storage: [],
-        input1: ""
+        input1: "",
+        currentPage:1,
+        count:0
       };
     }
   }
