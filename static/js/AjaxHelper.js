@@ -32,6 +32,19 @@ var AjaxHelper ={
 
   post:function(url, data, callback) {
     this.ajaxJSON(url, 'POST', JSON.stringify(data), callback,true,'application/json')
+  },
+  
+  uploadFile:function (url,formData,callback,error) {
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: formData, //form表单内容使用formData组装
+      processData: false,
+      contentType: false,
+      dataType: "json",  //返回值类型
+      success:callback,
+      error:error
+    });
   }
 }
 

@@ -93,6 +93,27 @@
               </el-form-item>
             </el-col>
           </el-row>
+          <el-row>
+            <el-col :span="10">
+              <el-form-item label="上传物品图片：" prop="planPrice">
+                <el-upload
+                  class="upload-demo"
+                  ref="upload"
+                  :multiple="false"
+                  action="https://jsonplaceholder.typicode.com/posts/"
+                  :on-preview="handlePreview"
+                  :on-remove="handleRemove"
+                  :file-list="fileList"
+                  :auto-upload="false">
+                  <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+
+                </el-upload>
+              </el-form-item>
+            </el-col>
+            <el-col :span="10">
+
+            </el-col>
+          </el-row>
         </el-form>
       </div>
       <div slot="footer" class="dialog-footer" align="center">
@@ -111,13 +132,21 @@
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="120px">
         <el-form-item label="物品编号：" prop="goodsId">
-          <el-input v-model="update.goodsId" readonly="true" disabled title="物品编号无法修改"></el-input>
+          <el-input v-model="update.goodsId"  disabled title="物品编号无法修改"></el-input>
         </el-form-item>
         <el-form-item label="物品名称：" prop="goodsName">
           <el-input v-model="update.goodsName"></el-input>
         </el-form-item>
         <el-form-item label="仓库编号：" prop="warehouseId">
-          <el-input v-model="update.warehouseId"></el-input>
+          <el-select v-model="update.warehouseId" placeholder="请选择" style="width: 100%">
+            <el-option
+
+              v-for="item in updateOptions"
+              :key="item.value + '-label'"
+              :label="item.label"
+              :value="item.value ">
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="数量：" prop="goodsNumber">
           <el-input v-model="update.goodsNumber"></el-input>
@@ -147,9 +176,40 @@
       console.log("loading data.");
       this.init();
       this.getWarehouse();
+
     },
 
     methods: {
+      submitUpload() {
+        // this.$refs.upload.submit();
+        // console.log(this.$refs.upload)
+        var formData = new FormData();
+        formData.append("goodsId",this.create.goodsId);
+        formData.append("goodsName",this.create.goodsName);
+        formData.append("warehouseId",this.create.warehouseId);
+        formData.append("goodsNumber",this.create.goodsNumber);
+        formData.append("planPrice",this.create.planPrice);
+        formData.append("singlePrice",this.create.singlePrice);
+        formData.append("file",$('.el-upload__input')[0].files[0]);
+        AjaxHelper.uploadFile("http://localhost:8081/goods/add",formData,(jsonResult)=>{
+          if(jsonResult.status==1){
+            this.$message.info(jsonResult.msg);
+            this.dialogCreateVisible = false;
+            this.$router.go(0);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        },(error)=>{
+          console.log(error);
+        })
+      },
+
+      handleRemove(file, fileList) {
+        console.log(file, fileList);
+      },
+      handlePreview(file) {
+        console.log(file);
+      },
       handleSizeChange(val){
 
       },
@@ -158,7 +218,7 @@
         AjaxHelper.get("http://localhost:8081/goods/selectAll", {pageNum: this.currentPage, pageSize: 10}, (data) => {
           console.log(data);
           var list = data.list;
-          this.count = data.list.length;
+          this.count = data.total;
           this.production = [];
           list.forEach(item => {
             this.production.push(item);
@@ -170,9 +230,10 @@
           var list = jsonResult.list;
           var option={};
           for(let i = 0; i< list.length; i++){
-            option.value = list[i].warehouseid;
-            option.label = list[i].warehousetype;
+            option.value = list[i].warehouseId;
+            option.label = list[i].warehouseType;
             this.options.push(option);
+            this.updateOptions.push(option);
             option = {};
           }
         })
@@ -180,7 +241,7 @@
       init(){
         AjaxHelper.get("http://localhost:8081/goods/selectAll",{pageNum: 1, pageSize: 10},(jsonResult)=>{
           var list = jsonResult.list;
-          this.count = jsonResult.list.length;
+          this.count = jsonResult.total;
           if(list==null){
             this.$message.info("暂无商品信息");
           }else {
@@ -216,14 +277,7 @@
         let data = this.create;
         console.log(data);
         console.log("this.data.warehouseId"+data.warehouseId);
-        AjaxHelper.post("http://localhost:8081/goods/add",data,(jsonResult)=>{
-          if(jsonResult.status==1){
-            this.$message.info(jsonResult.msg);
-            this.$router.go(0);
-          }else{
-            this.$message.info(jsonResult.msg);
-          }
-        })
+        this.submitUpload();
       },
       setCurrent(currentProduct) {
         console.log(currentProduct);
@@ -388,15 +442,41 @@
         production: [],
         input1: "",
         options: [],
+        updateOptions:[],
         value: '',
         currentPage:1,
-        count:0
+        count:0,
+        imageUrl: '',
+        fileList:[]
       };
     }
   }
 </script>
 
 <style scoped>
+  .avatar-uploader .el-upload {
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar-uploader .el-upload:hover {
+    border-color: #409EFF;
+  }
+  .avatar-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 178px;
+    height: 178px;
+    line-height: 178px;
+    text-align: center;
+  }
+  .avatar {
+    width: 178px;
+    height: 178px;
+    display: block;
+  }
   .orderTitle {
   //border-bottom: 2px #409eff solid;
     font-size: 35px;

@@ -157,7 +157,7 @@
         AjaxHelper.get("http://localhost:8081/export/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
           console.log(data);
           var list = data.list;
-          this.count = data.list.length;
+          this.count = data.total;
           list.forEach(item => {
             this.warehouseExport.push(item);
           });
@@ -357,7 +357,7 @@
         },
         createRules: {
           exportId: [{required: true, message: '请输入出库单编号', trigger: 'blur'}],
-          //exportDate: [{required: true, message: '请输入仓库编号', trigger: 'blur'}],
+          exportDate: [{required: true, message: '请输入仓库编号', trigger: 'blur'}],
           warehouseId: [{required: true, message: '请输入仓库编号', trigger: 'blur'}],
           goodsId: [{required: true, message: '请输入物品编号', trigger: 'blur'}],
           orderId: [{required: true, message: '请输入合同编号', trigger: 'blur'}],
@@ -373,6 +373,7 @@
         },
         updateRules: {
           exportId: [{required: true, message: '请输入出库单编号', trigger: 'blur'}],
+          exportDate: [{required: true, message: '请输入出库日期', trigger: 'blur'}],
           warehouseId: [{required: true, message: '请输入仓库编号', trigger: 'blur'}],
           goodsId: [{required: true, message: '请输入物品编号', trigger: 'blur'}],
           orderId: [{required: true, message: '请输入合同编号', trigger: 'blur'}],

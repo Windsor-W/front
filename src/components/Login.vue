@@ -103,13 +103,22 @@
         let account = this.ruleForm.account;
         console.log(account);
         AjaxHelper.post("http://localhost:8081/user/login",{account:this.ruleForm.account,password:this.ruleForm.password},(data)=>{
-          if(data.status==1){
+          if(data.status==3){
             this.$message({
               message: '登录成功',
               type: 'success'
             })
             this.$router.push('warehouse');
             console.log(data);
+          }else if(data.status==1){
+            this.$message({
+              message: '登录成功',
+              type: 'success'
+            });
+            this.$router.push('shoes');
+            console.log(data);
+          }else{
+            this.$message.info(data.msg);
           }
         })
       },

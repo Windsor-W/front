@@ -19,9 +19,9 @@
 
     <!-- 仓库汇总 -->
     <el-table :data="Storage" style="width: 100%">
-      <el-table-column label="仓库编号" prop="warehouseid" align="center"></el-table-column>
-      <el-table-column label="仓库名称" prop="warehousename" align="center"></el-table-column>
-      <el-table-column prop="warehousetype" align="center">
+      <el-table-column label="仓库编号" prop="warehouseId" align="center"></el-table-column>
+      <el-table-column label="仓库名称" prop="warehouseName" align="center"></el-table-column>
+      <el-table-column prop="warehouseType" align="center">
         <template slot="header" slot-scope="scope">
           仓库类型
           <el-tooltip class="item" effect="dark" content="1：服饰；2：鞋履" placement="top">
@@ -53,13 +53,13 @@
     <!-- 新建仓库 -->
     <el-dialog title="添加新仓库" :visible.sync="dialogCreateVisible" width="400px">
       <el-form :model="create" :rules="createRules" ref="create" label-width="100px">
-        <el-form-item label="仓库编号：" prop="warehouseid">
+        <el-form-item label="仓库编号：" prop="warehouseId">
           <el-input v-model="create.warehouseId"></el-input>
         </el-form-item>
-        <el-form-item label="仓库名称：" prop="warehousename">
+        <el-form-item label="仓库名称：" prop="warehouseName">
           <el-input v-model="create.warehouseName"></el-input>
         </el-form-item>
-        <el-form-item label="仓库类型：" prop="warehousetype">
+        <el-form-item label="仓库类型：" prop="warehouseType">
           <el-input v-model="create.warehouseType"></el-input>
         </el-form-item>
       </el-form>
@@ -78,14 +78,14 @@
       width="400px"
     >
       <el-form :model="update" :rules="updateRules" ref="update" label-width="100px">
-        <el-form-item label="仓库编号:" prop="warehouseid">
-          <el-input v-model="update.warehouseid" disabled title="仓库编号无法修改"></el-input>
+        <el-form-item label="仓库编号:" prop="warehouseId">
+          <el-input v-model="update.warehouseId" disabled title="仓库编号无法修改"></el-input>
         </el-form-item>
-        <el-form-item label="仓库名字" prop="warehousename">
-          <el-input v-model="update.warehousename"></el-input>
+        <el-form-item label="仓库名字" prop="warehouseName">
+          <el-input v-model="update.warehouseName"></el-input>
         </el-form-item>
-        <el-form-item label="仓库类型" prop="warehousetype">
-          <el-input v-model="update.warehousetype"></el-input>
+        <el-form-item label="仓库类型" prop="warehouseType">
+          <el-input v-model="update.warehouseType"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -107,7 +107,7 @@
         AjaxHelper.get("http://localhost:8081/warehouse/selectAll", {pageNum: 1, pageSize: 10}, (data) => {
           console.log(data);
           var list = data.list;
-          this.count = data.list.length;
+          this.count = data.total;
           list.forEach(item => {
             this.Storage.push(item);
           });
@@ -186,9 +186,9 @@
       },
       setCurrent(currentStorage) {
         console.log(currentStorage);
-        this.update.warehouseid = currentStorage.warehouseid;
-        this.update.warehousename = currentStorage.warehousename;
-        this.update.warehousetype = currentStorage.warehousetype;
+        this.update.warehouseId = currentStorage.warehouseId;
+        this.update.warehouseName = currentStorage.warehouseName;
+        this.update.warehouseType = currentStorage.warehouseType;
         this.update.sum_money = currentStorage.sum_money;
         this.dialogUpdateVisible = true;
         console.log(this.dialogUpdateVisible);
@@ -197,9 +197,9 @@
       //更新数据
       updateStorage() {
         let data = {
-          warehouseId: this.update.warehouseid,
-          warehouseName: this.update.warehousename,
-          warehouseType: this.update.warehousetype
+          warehouseId: this.update.warehouseId,
+          warehouseName: this.update.warehouseName,
+          warehouseType: this.update.warehouseType
         };
         AjaxHelper.post("http://localhost:8081/warehouse/update", data, (jsonResult) => {
           console.log(jsonResult);
@@ -218,14 +218,14 @@
       removed(currentStorage) {
         console.log("删除订单");
         this.$confirm(
-          "此操作将永久删除仓库信息 " + currentStorage.warehouseid + ", 是否继续?",
+          "此操作将永久删除仓库信息 " + currentStorage.warehouseId + ", 是否继续?",
           "提示",
           {
             type: "warning"
           }
         )
           .then(() => {
-            AjaxHelper.get("http://localhost:8081/warehouse/delete", {warehouseId:currentStorage.warehouseid}, (data) => {
+            AjaxHelper.get("http://localhost:8081/warehouse/delete", {warehouseId:currentStorage.warehouseId}, (data) => {
               if(data.status==1){
                 this.$message.info("删除成功!");
                 this.$router.go(0);
@@ -273,38 +273,38 @@
         dialogUpdateVisible: false,
         word: "", // 搜索框的值
         create: {
-          warehouseid: "",
-          warehousename: "",
-          warehousetype: ""
+          warehouseId: "",
+          warehouseName: "",
+          warehouseType: ""
         },
 
         createRules: {
-          warehouseid: [
+          warehouseId: [
             {required: true, message: '请输入仓库编号', trigger: 'blur'}
           ],
-          warehousename: [
+          warehouseName: [
             {required: true, message: '请输入仓库名称', trigger: 'blur'}
           ],
-          warehousetype: [
+          warehouseType: [
             {required: true, message: '请输入仓库类型', trigger: 'blur'},
             {min: 1, max: 10, message: '输入1～10', trigger: 'blur'}
           ]
         },
         update: {
-          warehouseid: "",
-          warehousename: "",
-          warehousetype: "",
+          warehouseId: "",
+          warehouseName: "",
+          warehouseType: "",
           sum_money: ""
         },
 
         updateRules: {
-          warehouseid: [
+          warehouseId: [
             {required: true, message: '请输入仓库编号', trigger: 'blur'}
           ],
-          warehousename: [
+          warehouseName: [
             {required: true, message: '请输入仓库名称', trigger: 'blur'}
           ],
-          warehousetype: [
+          warehouseType: [
             {required: true, message: '请输入仓库类型', trigger: 'blur'},
             {min: 1, max: 10, message: '输入1～10', trigger: 'blur'}
           ]

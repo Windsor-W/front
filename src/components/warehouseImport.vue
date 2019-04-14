@@ -167,7 +167,7 @@
           list.forEach(item => {
             this.warehouseImport.push(item);
           });
-          this.count = data.list.length;
+          this.count = data.total;
         });
       },
       handleSizeChange(val){
@@ -190,8 +190,8 @@
           var list = jsonResult.list;
           var option={};
           for(let i = 0; i< list.length; i++){
-            option.value = list[i].warehouseid;
-            option.label = list[i].warehouseid;
+            option.value = list[i].warehouseId;
+            option.label = list[i].warehouseType;
             this.options.push(option);
             option = {};
           }

@@ -159,7 +159,7 @@
       init() {
         AjaxHelper.get("http://localhost:8081/contract/selectAll", {pageNum: 1, pageSize: 10}, (jsonResult) => {
           var list = jsonResult.list;
-          this.count = jsonResult.list.length;
+          this.count = jsonResult.total;
           list.forEach(item => {
             this.Contract.push(item);
           });
