@@ -47,7 +47,8 @@
     },
     data(){
       return{
-        goodsList:[]
+        goodsList:[],
+        account:null
       }
     }
 

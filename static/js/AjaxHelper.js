@@ -1,6 +1,7 @@
 // 联调后台接口类
 
 var AjaxHelper ={
+
   //正常使用
   ajaxJSON:function(url, type, data, callback,async,contentType) {
 
