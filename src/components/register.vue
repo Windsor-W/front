@@ -37,6 +37,7 @@
 </template>
 
 <script>
+  import {AjaxHelper} from "../../static/js/AjaxHelper";
   export default {
     name: "passForget",
     data() {
@@ -85,23 +86,18 @@
       //连接数据库，更新用户
       updateUser() {
         let data ={
-          userName: this.ruleForm.name,
-          passwd: this.ruleForm.pass
+          account: this.ruleForm.name.toString(),
+          password: this.ruleForm.pass
         };
         console.log(data);
-        this.$ajax.post('http://localhost:8080/user/updateOne/', JSON.stringify(data),
-          {
-            headers: { 'Content-Type': 'application/json;charset=UTF-8'}
+        AjaxHelper.post("http://localhost:8081/user/register",data,(jsonResult)=>{
+          if(jsonResult.status==1){
+            this.$message.info(jsonResult.msg);
+            this.$router.push("/");
+          }else{
+            this.$message.info(jsonResult.msg);
           }
-        ).then(response=> {
-          console.log(response);
-          this.$message({
-            type: 'success',
-            message: '密码重置成功'
-          });
-        }).catch(function (error){
-          console.log("update failed！")
-        });
+        })
       },
 
       submitForm(formName) {

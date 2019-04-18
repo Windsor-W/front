@@ -6,7 +6,7 @@
         <p>{{good.goodsName}}</p>
         <p>{{good.planPrice}}</p>
         <div>
-          <el-button type="success" :id="good.goodsId" @click="buyThis(good.goodsId)">购买</el-button>
+          <el-button type="success" :id="good.goodsId" @click="buyThis(good.goodsId,good.warehouseId,1)">购买</el-button>
         </div>
       </el-col>
     </el-row>
@@ -16,27 +16,35 @@
 
 <script>
   import {AjaxHelper} from "../../static/js/AjaxHelper";
+  const currentuser = JSON.parse(sessionStorage.getItem('account'));
 
   export default {
     mounted() {
       // 加载数据
       console.log("loading data.");
       this.getGoods();
+      console.log(currentuser.account.account);
+
     },
     methods:{
-      buyThis(goodsId){
+      buyThis(goodsId,warehouseId,orderNumber){
         console.log(goodsId);
+        var data = {account:currentuser.account.account,warehouseId:warehouseId,orderNumber:orderNumber,goodsId:goodsId};
+        AjaxHelper.post("http://localhost:8081/order/add",data,(jsonResult)=>{
+          if(jsonResult.status==1){
+            this.$message.info(jsonResult.msg);
+          }else{
+            this.$message.info(jsonResult.msg);
+          }
+        })
       },
       getGoods(){
         AjaxHelper.get("http://localhost:8081/goods/selectAll",{pageNum: 1, pageSize: 100},(jsonResult)=>{
           var list = jsonResult.list;
           this.count = jsonResult.list.length;
-          console.log(list);
-          console.log("run")
           if(list==null){
             this.$message.info("暂无商品信息");
           }else {
-            console.log("list"+list);
             list.forEach(item=>{
               //item.imgUrl = require(item.imgUrl);
               this.goodsList.push(item);

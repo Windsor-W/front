@@ -113,8 +113,8 @@
     methods: {
       logOut() {
         //删除localStorage
-        localStorage.removeItem("User");
-        this.$router.push("/Login");
+        // sessionStorage.removeItem("account");
+        this.$router.push("/");
       },
       toLogin() {
         this.$router.push('/Login');

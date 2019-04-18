@@ -88,7 +88,7 @@
         rules: {
           account: [
             { required: true, message: '请输入用户名', trigger: 'blur' },
-            { min: 6, max: 20, message: '长度为 6～20 个字符', trigger: 'blur' }
+            { min: 4, max: 20, message: '长度为 4～20 个字符', trigger: 'blur' }
           ],
           password: [
             { required: true, message: '请输入密码', trigger: 'change' },
@@ -102,6 +102,9 @@
       check(num) {
         let account = this.ruleForm.account;
         console.log(account);
+        let state = {
+          account:null
+        }
         AjaxHelper.post("http://localhost:8081/user/login",{account:this.ruleForm.account,password:this.ruleForm.password},(data)=>{
           if(data.status==3){
             this.$message({
@@ -109,12 +112,17 @@
               type: 'success'
             })
             this.$router.push('warehouse');
+            state.account = data.data;
+            sessionStorage.setItem('account',JSON.stringify(state));
             console.log(data);
           }else if(data.status==1){
             this.$message({
               message: '登录成功',
               type: 'success'
             });
+            state.account = data.data;
+            console.log(state.account);
+            sessionStorage.setItem('account',JSON.stringify(state));
             this.$router.push('shoes');
             console.log(data);
           }else{
